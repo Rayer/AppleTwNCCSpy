@@ -2,6 +2,8 @@ package AppleProductMonitor
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	log "github.com/sirupsen/logrus"
 	"io"
@@ -77,12 +79,18 @@ func (c *Crawler) parse(source io.ReadCloser) ([]Product, error) {
 	return products, nil
 }
 
-func (c *Crawler) fetchAndCompare(e chan<- Event) {
+func (c *Crawler) fetchAndCompare() (Event, error) {
 
 	resp, err := http.Get(c.FetchTarget)
-	if err != nil || resp.StatusCode != http.StatusOK {
+	if err != nil {
 		log.Warnf("Fail to fetch from %s !", c.FetchTarget)
-		return
+		return Event{}, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		msg := fmt.Sprintf("bad http status for fetching %s : %d !", c.FetchTarget, resp.StatusCode)
+		log.Warn(msg)
+		return Event{}, errors.New(msg)
 	}
 
 	defer func() {
@@ -91,8 +99,12 @@ func (c *Crawler) fetchAndCompare(e chan<- Event) {
 
 	recent, err := c.parse(resp.Body)
 
-	if err != nil || len(recent) == 0 {
-		return
+	if err != nil {
+		return Event{}, err
+	}
+
+	if len(recent) == 0 {
+		return Event{}, errors.New("parsed but get 0 elements, something wrong")
 	}
 
 	old := c.DataAccess.LoadData()
@@ -129,10 +141,10 @@ func (c *Crawler) fetchAndCompare(e chan<- Event) {
 		}
 	}
 
-	e <- Event{
+	return Event{
 		Added:   added,
 		Removed: removed,
-	}
+	}, nil
 }
 
 func (c *Crawler) Run(ctx context.Context) (e chan Event) {
@@ -147,7 +159,12 @@ func (c *Crawler) Run(ctx context.Context) (e chan Event) {
 				timer.Stop()
 				return
 			case <-timer.C:
-				c.fetchAndCompare(e)
+				event, err := c.fetchAndCompare()
+				if err != nil {
+					log.Warnf("error while fetchAndCompare() : %s", err.Error())
+					return
+				}
+				e <- event
 			}
 		}
 	}()
