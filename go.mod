@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	github.com/PuerkitoBio/goquery v1.6.0
+	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/sirupsen/logrus v1.7.0

@@ -1,6 +1,10 @@
 package main
 
-import "github.com/spf13/viper"
+import (
+	"github.com/fsnotify/fsnotify"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+)
 
 type Configuration struct {
 	BotToken         string
@@ -10,30 +14,42 @@ type Configuration struct {
 	DebugLevel       int
 }
 
-func NewConfigurationFromViper() (conf *Configuration, err error) {
-	viper.New()
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("..")
-	viper.AddConfigPath("./vault")
-	viper.SetConfigName("bot")
-	viper.SetConfigType("yaml")
+func NewConfigurationFromViper(onConfigChanged func(configuration *Configuration)) (conf *Configuration, err error) {
+	v := viper.New()
+	v.AddConfigPath(".")
+	v.AddConfigPath("..")
+	v.AddConfigPath("./vault")
+	v.SetConfigName("bot")
+	v.SetConfigType("yaml")
 
-	err = viper.ReadInConfig()
+	err = v.ReadInConfig()
 
 	if err != nil {
 		return nil, err
 	}
 
-	viper.SetDefault("FetchTarget", "https://www.apple.com/tw/nccid")
-	viper.SetDefault("FetchIntervalSec", 600)
-
-	conf = &Configuration{
-		BotToken:         viper.GetString("BotToken"),
-		ChannelId:        viper.GetInt64("ChannelId"),
-		FetchTarget:      viper.GetString("FetchTarget"),
-		FetchIntervalSec: viper.GetInt("FetchIntervalSec"),
-		DebugLevel:       viper.GetInt("DebugLevel"),
+	conf = createConfigurationFromViper(v)
+	if onConfigChanged != nil {
+		v.WatchConfig()
+		v.OnConfigChange(func(in fsnotify.Event) {
+			log.Info("Configuration changed detected...")
+			onConfigChanged(createConfigurationFromViper(v))
+		})
 	}
 
 	return
+}
+
+func createConfigurationFromViper(v *viper.Viper) *Configuration {
+
+	v.SetDefault("FetchTarget", "https://www.apple.com/tw/nccid")
+	v.SetDefault("FetchIntervalSec", 600)
+
+	return &Configuration{
+		BotToken:         v.GetString("BotToken"),
+		ChannelId:        v.GetInt64("ChannelId"),
+		FetchTarget:      v.GetString("FetchTarget"),
+		FetchIntervalSec: v.GetInt("FetchIntervalSec"),
+		DebugLevel:       v.GetInt("DebugLevel"),
+	}
 }

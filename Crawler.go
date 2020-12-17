@@ -144,6 +144,7 @@ func (c *Crawler) Run(ctx context.Context) (e chan Event) {
 		for {
 			select {
 			case <-ctx.Done():
+				timer.Stop()
 				return
 			case <-timer.C:
 				c.fetchAndCompare(e)

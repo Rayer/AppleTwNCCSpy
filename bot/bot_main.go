@@ -15,57 +15,92 @@ import (
 //Test channel
 //const chatId = int64(-1001409488439)
 
-func main() {
-	//log.SetLevel(log.DebugLevel)
-	conf, err := NewConfigurationFromViper()
+type BotSpec struct {
+	config        *Configuration
+	bot           *tgbotapi.BotAPI
+	context       context.Context
+	cancel        context.CancelFunc
+	crawler       *AppleProductMonitor.Crawler
+	updateChannel chan AppleProductMonitor.Event
+}
 
-	if err != nil {
-		panic(err)
+func (b *BotSpec) teardown() {
+	if b.cancel != nil {
+		b.cancel()
+	}
+}
+
+func NewBotSpec(conf *Configuration) *BotSpec {
+
+	b := &BotSpec{
+		config: conf,
 	}
 
-	log.Infof("Loaded configuration : %+v", conf)
-	bot, err := tgbotapi.NewBotAPI(conf.BotToken)
+	var err error
+
+	b.bot, err = tgbotapi.NewBotAPI(conf.BotToken)
 
 	if err != nil {
 		log.Panic(err)
 	}
 
 	log.SetLevel(log.Level(conf.DebugLevel))
-	bot.Debug = true
-	log.Printf("Successfully authorized on account %s", bot.Self.UserName)
+	b.bot.Debug = true
+	log.Infof("Successfully authorized on account %s", b.bot.Self.UserName)
 
-	c := AppleProductMonitor.NewCrawler(conf.FetchTarget, conf.FetchIntervalSec)
-	ch := c.Run(context.TODO())
+	b.crawler = AppleProductMonitor.NewCrawler(conf.FetchTarget, conf.FetchIntervalSec)
+	b.context, b.cancel = context.WithCancel(context.Background())
+	b.updateChannel = b.crawler.Run(context.Background())
+
+	return b
+}
+
+var botSpec *BotSpec
+
+func main() {
+	conf, err := NewConfigurationFromViper(func(configuration *Configuration) {
+		botSpec.teardown()
+		log.Infof("New configuration : %+v", configuration)
+		botSpec = NewBotSpec(configuration)
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	log.Infof("Loaded configuration : %+v", conf)
+
+	botSpec = NewBotSpec(conf)
 
 	for {
 		select {
-		case event := <-ch:
+		case event := <-botSpec.updateChannel:
 			if len(event.Added) > 0 {
-				sendToChannel(bot, conf.ChannelId, "偵測到新加入產品:")
-				addList := prettyPrintProducts(event.Added, "(+)")
+				botSpec.sendToChannel("偵測到新加入產品:")
+				addList := botSpec.prettyPrintProducts(event.Added, "(+)")
 				for _, v := range addList {
-					sendToChannel(bot, conf.ChannelId, v)
+					botSpec.sendToChannel(v)
 				}
 			}
 			if len(event.Removed) > 0 {
-				sendToChannel(bot, conf.ChannelId, "偵測到移除產品:")
-				removeList := prettyPrintProducts(event.Removed, "(-)")
+				botSpec.sendToChannel("偵測到移除產品:")
+				removeList := botSpec.prettyPrintProducts(event.Removed, "(-)")
 				for _, v := range removeList {
-					sendToChannel(bot, conf.ChannelId, v)
+					botSpec.sendToChannel(v)
 				}
 			}
 		}
 	}
 }
 
-func sendToChannel(bot *tgbotapi.BotAPI, chatId int64, message string) {
+func (b *BotSpec) sendToChannel(message string) {
 	log.Info("Sending : ", message)
-	msg := tgbotapi.NewMessage(chatId, message)
-	_, _ = bot.Send(msg)
+	msg := tgbotapi.NewMessage(b.config.ChannelId, message)
+	_, _ = b.bot.Send(msg)
 	time.Sleep(1 * time.Second)
 }
 
-func prettyPrintProducts(source []AppleProductMonitor.Product, prefix string) (ret []string) {
+func (b *BotSpec) prettyPrintProducts(source []AppleProductMonitor.Product, prefix string) (ret []string) {
 	log.Infof("Trying to print : %+v", source)
 	productMap := make(map[string][]AppleProductMonitor.Product)
 	for _, r := range source {
