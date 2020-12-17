@@ -4,6 +4,12 @@
 
 ## 使用方法
 
+### 首先，建立Telegram Bot跟頻道
+
+請參考[這裏](https://dotblogs.com.tw/c5todo/2016/07/10/174049)以取得你的Telegram Bot，建立頻道，以及取得chat id。
+
+取得chat id有簡單一點的方法就是，傳訊給@getidsbot，然後將你想要取得的channel/group裡面任何一條訊息forward給他，他就會告訴你該channel/group的詳細訊息，包含chat id。
+
 ### 組態檔案
 
 固定放置在 ./valut或者工作目錄底下。組態檔固定檔名為bot.yaml，內容如下
