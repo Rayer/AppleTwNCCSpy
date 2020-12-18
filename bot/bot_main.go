@@ -89,6 +89,7 @@ func main() {
 					botSpec.sendToChannel(v)
 				}
 			}
+		default:
 		}
 	}
 }

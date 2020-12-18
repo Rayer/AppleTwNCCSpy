@@ -165,6 +165,7 @@ func (c *Crawler) Run(ctx context.Context) (e chan Event) {
 					return
 				}
 				e <- event
+			default:
 			}
 		}
 	}()
