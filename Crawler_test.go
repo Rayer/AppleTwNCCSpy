@@ -2,7 +2,6 @@ package AppleProductMonitor
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,7 +11,7 @@ import (
 func TestCrawler_parse(t *testing.T) {
 	c := &Crawler{}
 
-	b, err := ioutil.ReadFile("resource/sample.html")
+	b, err := ioutil.ReadFile("test_resources/sample.html")
 	if err != nil {
 		t.Fatalf("err : %s", err)
 	}
@@ -84,17 +83,17 @@ func TestCrawler_parse(t *testing.T) {
 //
 //	//c.compare(a, b)
 //}
-
-func TestCrawler_Run(t *testing.T) {
-
-	c := Crawler{}
-	ctx := context.Background()
-	ch := c.Run(ctx)
-
-	for {
-		select {
-		case event := <-ch:
-			t.Logf("%+v", event)
-		}
-	}
-}
+//
+//func TestCrawler_Run(t *testing.T) {
+//
+//	c := Crawler{}
+//	ctx := context.Background()
+//	ch := c.Run(ctx)
+//
+//	for {
+//		select {
+//		case event := <-ch:
+//			t.Logf("%+v", event)
+//		}
+//	}
+//}
