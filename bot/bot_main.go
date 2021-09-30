@@ -3,6 +3,7 @@ package main
 import (
 	"AppleProductMonitor"
 	"context"
+	_ "embed"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	log "github.com/sirupsen/logrus"
@@ -14,6 +15,9 @@ import (
 
 //Test channel
 //const chatId = int64(-1001409488439)
+
+//go:embed resources/newitem_explanation.txt
+var NewItemExplanation string
 
 type BotSpec struct {
 	config        *Configuration
@@ -81,6 +85,7 @@ func main() {
 				for _, v := range addList {
 					botSpec.sendToChannel(v)
 				}
+				botSpec.sendToChannel(NewItemExplanation)
 			}
 			if len(event.Removed) > 0 {
 				botSpec.sendToChannel("偵測到移除產品:")

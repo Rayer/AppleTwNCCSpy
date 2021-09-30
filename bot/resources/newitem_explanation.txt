@@ -1,0 +1,1 @@
+本服務是檢查並且分析Apple台灣的NCC ID申告頁面( https://www.apple.com/tw/nccid/ )，而非NCC形式審查頁面( https://nccmember.ncc.gov.tw/Application/Fun/Fun016.aspx )。前者比較慢更新是非常正常的，但是一更新通常也代表即將發售，所以請不要覺得困惑說「誒，不是NCC頁面已經早有更新了嗎？」
