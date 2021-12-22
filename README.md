@@ -44,3 +44,13 @@ docker build . -t rayer/apple-product-monitor
 docker run --name AppleProductMonitor -v /opt/apple-product-monitor:/app/vault --rm -d rayer/apple-product-monitor
 ```
 
+### Google Cloud Functions版本
+
+這個比較牽涉到設定，不過可以參考 `function.go` 這隻。我自己的做法是使用Secret Manager
+
+1. 參考 `function.go` 裡面的 `Configuration` 寫出config的yaml內容，寫入Secret Manager一個值裡面
+2. 將這個內容mount在 `/secrets/AppleTwNccBotConfig.yml` 具體作法請參照Cloud Function Config
+3. 參照Config的 `bucket` `prefix` 在GCS上建立bucket跟folder
+
+通常這樣就可以了，剩下的要自己跑跑看。我自己是跑一套在GCP上啦，問題不大。
+
