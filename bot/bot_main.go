@@ -1,10 +1,10 @@
 package main
 
 import (
-	"AppleProductMonitor"
 	"context"
 	_ "embed"
 	"fmt"
+	AppleProductMonitor "github.com/Rayer/AppleTwNCCSpy"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	log "github.com/sirupsen/logrus"
 	"time"

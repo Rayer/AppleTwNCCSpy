@@ -13,7 +13,7 @@ import (
 )
 
 type Crawler struct {
-	DataAccess       DataService
+	DataAccess       DataAccess
 	FetchTarget      string
 	FetchIntervalSec int
 }
@@ -79,7 +79,7 @@ func (c *Crawler) parse(source io.ReadCloser) ([]Product, error) {
 	return products, nil
 }
 
-func (c *Crawler) fetchAndCompare() (Event, error) {
+func (c *Crawler) FetchAndCompare(ctx context.Context) (Event, error) {
 
 	resp, err := http.Get(c.FetchTarget)
 	if err != nil {
@@ -107,8 +107,11 @@ func (c *Crawler) fetchAndCompare() (Event, error) {
 		return Event{}, errors.New("parsed but get 0 elements, something wrong")
 	}
 
-	old := c.DataAccess.LoadData()
-	c.DataAccess.SaveData(recent)
+	old, _ := c.DataAccess.LoadData(ctx)
+	err = c.DataAccess.SaveData(ctx, recent)
+	if err != nil {
+		return Event{}, err
+	}
 
 	added := make([]Product, 0)
 	removed := make([]Product, 0)
@@ -159,9 +162,9 @@ func (c *Crawler) Run(ctx context.Context) (e chan Event) {
 				timer.Stop()
 				return
 			case <-timer.C:
-				event, err := c.fetchAndCompare()
+				event, err := c.FetchAndCompare(ctx)
 				if err != nil {
-					log.Warnf("error while fetchAndCompare() : %s", err.Error())
+					log.Warnf("error while FetchAndCompare() : %s", err.Error())
 					return
 				}
 				e <- event
