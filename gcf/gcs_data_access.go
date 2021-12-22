@@ -1,9 +1,10 @@
-package AppleProductMonitor
+package gcf
 
 import (
 	"cloud.google.com/go/storage"
 	"context"
 	"encoding/json"
+	"github.com/Rayer/AppleTwNCCSpy"
 	"io/ioutil"
 	"strings"
 )
@@ -14,7 +15,7 @@ type GcsDataAccess struct {
 	Prefix string
 }
 
-func NewGcsDataAccess(ctx context.Context, bucket string, prefix string) (DataAccess, error) {
+func NewGcsDataAccess(ctx context.Context, bucket string, prefix string) (AppleProductMonitor.DataAccess, error) {
 	client, err := storage.NewClient(ctx)
 	if err != nil {
 		return nil, err
@@ -27,7 +28,7 @@ func NewGcsDataAccess(ctx context.Context, bucket string, prefix string) (DataAc
 	}, nil
 }
 
-func (g *GcsDataAccess) SaveData(ctx context.Context, data []Product) error {
+func (g *GcsDataAccess) SaveData(ctx context.Context, data []AppleProductMonitor.Product) error {
 	fileStream, _ := json.Marshal(data)
 	w := g.client.Bucket(g.Bucket).Object(strings.Join([]string{g.Prefix, "status.json"}, "/")).NewWriter(ctx)
 	defer func() {
@@ -37,8 +38,8 @@ func (g *GcsDataAccess) SaveData(ctx context.Context, data []Product) error {
 	return err
 }
 
-func (g *GcsDataAccess) LoadData(ctx context.Context) ([]Product, error) {
-	var ret []Product
+func (g *GcsDataAccess) LoadData(ctx context.Context) ([]AppleProductMonitor.Product, error) {
+	var ret []AppleProductMonitor.Product
 	r, err := g.client.Bucket(g.Bucket).Object(strings.Join([]string{g.Prefix, "status.json"}, "/")).NewReader(ctx)
 	if err != nil {
 		return ret, err

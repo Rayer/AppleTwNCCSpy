@@ -1,9 +1,10 @@
-package AppleProductMonitor
+package gcf
 
 import (
 	"context"
 	_ "embed"
 	"fmt"
+	"github.com/Rayer/AppleTwNCCSpy"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
@@ -57,7 +58,7 @@ func CrawlAndAnalyze(ctx context.Context, m PubSubMessage) error {
 		return fmt.Errorf("GCS initialization failed, err = %v", err)
 	}
 
-	crawler := Crawler{
+	crawler := AppleProductMonitor.Crawler{
 		DataAccess:  dataAccess,
 		FetchTarget: "https://www.apple.com/tw/nccid",
 	}
@@ -94,12 +95,12 @@ func sendToChannel(bot *tgbotapi.BotAPI, channelId int64, message string) {
 	time.Sleep(1 * time.Second)
 }
 
-func prettyPrintProducts(source []Product, prefix string) (ret []string) {
+func prettyPrintProducts(source []AppleProductMonitor.Product, prefix string) (ret []string) {
 	log.Printf("Trying to print : %+v", source)
-	productMap := make(map[string][]Product)
+	productMap := make(map[string][]AppleProductMonitor.Product)
 	for _, r := range source {
 		if v, exist := productMap[r.Group]; !exist {
-			productMap[r.Group] = []Product{r}
+			productMap[r.Group] = []AppleProductMonitor.Product{r}
 		} else {
 			productMap[r.Group] = append(v, r)
 		}
