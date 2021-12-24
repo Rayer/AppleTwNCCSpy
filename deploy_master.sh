@@ -1,0 +1,2 @@
+#!/bin/sh
+gcloud functions deploy apple-ncc-crawler --region=us-central1 --entry-point CrawlAndAnalyze --memory 128MB --runtime go116 --source "https://source.developers.google.com/projects/iris-303620/repos/github_rayer_appletwnccspy/moveable-aliases/master/paths//"
