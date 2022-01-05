@@ -34,8 +34,8 @@ type Product struct {
 }
 
 type Event struct {
-	Added   []Product
-	Removed []Product
+	Added   []Product `json:"added" yaml:"added"`
+	Removed []Product `json:"removed" yaml:"removed"`
 }
 
 func (c *Crawler) parse(source io.ReadCloser) ([]Product, error) {

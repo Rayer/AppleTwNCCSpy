@@ -84,6 +84,14 @@ func CrawlAndAnalyze(ctx context.Context, m PubSubMessage) error {
 		}
 	}
 
+	if len(event.Removed) != 0 || len(event.Added) != 0 {
+		//Serialize into gcs
+		err = dataAccess.SaveDiff(ctx, event)
+		if err != nil {
+			return fmt.Errorf("unable write diff file : %v", err)
+		}
+	}
+
 	return nil
 }
 
