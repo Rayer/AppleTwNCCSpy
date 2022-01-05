@@ -4,8 +4,11 @@ import (
 	"cloud.google.com/go/storage"
 	"context"
 	"encoding/json"
+	"fmt"
+	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"strings"
+	"time"
 )
 
 type GcsDataAccess struct {
@@ -14,7 +17,7 @@ type GcsDataAccess struct {
 	Prefix string
 }
 
-func NewGcsDataAccess(ctx context.Context, bucket string, prefix string) (DataAccess, error) {
+func NewGcsDataAccess(ctx context.Context, bucket string, prefix string) (*GcsDataAccess, error) {
 	client, err := storage.NewClient(ctx)
 	if err != nil {
 		return nil, err
@@ -54,6 +57,21 @@ func (g *GcsDataAccess) LoadData(ctx context.Context) ([]Product, error) {
 
 	err = json.Unmarshal(c, &ret)
 	return ret, err
+}
+
+func (g *GcsDataAccess) SaveDiff(ctx context.Context, event Event) error {
+	dateTag := time.Now().Format(time.Stamp)
+	diffPath := strings.Join([]string{g.Prefix, fmt.Sprintf("diff-%s.json", dateTag)}, "/")
+	w := g.client.Bucket(g.Bucket).Object(diffPath).NewWriter(ctx)
+	defer func() {
+		_ = w.Close()
+	}()
+	b, err := yaml.Marshal(event)
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(b)
+	return err
 }
 
 //
