@@ -3,7 +3,6 @@ package AppleProductMonitor
 import (
 	"cloud.google.com/go/storage"
 	"context"
-	"encoding/json"
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
@@ -31,8 +30,8 @@ func NewGcsDataAccess(ctx context.Context, bucket string, prefix string) (*GcsDa
 }
 
 func (g *GcsDataAccess) SaveData(ctx context.Context, data []Product) error {
-	fileStream, _ := json.Marshal(data)
-	w := g.client.Bucket(g.Bucket).Object(strings.Join([]string{g.Prefix, "status.json"}, "/")).NewWriter(ctx)
+	fileStream, _ := yaml.Marshal(data)
+	w := g.client.Bucket(g.Bucket).Object(strings.Join([]string{g.Prefix, "status.yaml"}, "/")).NewWriter(ctx)
 	defer func() {
 		_ = w.Close()
 	}()
@@ -42,7 +41,7 @@ func (g *GcsDataAccess) SaveData(ctx context.Context, data []Product) error {
 
 func (g *GcsDataAccess) LoadData(ctx context.Context) ([]Product, error) {
 	var ret []Product
-	r, err := g.client.Bucket(g.Bucket).Object(strings.Join([]string{g.Prefix, "status.json"}, "/")).NewReader(ctx)
+	r, err := g.client.Bucket(g.Bucket).Object(strings.Join([]string{g.Prefix, "status.yaml"}, "/")).NewReader(ctx)
 	if err != nil {
 		return ret, err
 	}
@@ -55,13 +54,13 @@ func (g *GcsDataAccess) LoadData(ctx context.Context) ([]Product, error) {
 		return ret, err
 	}
 
-	err = json.Unmarshal(c, &ret)
+	err = yaml.Unmarshal(c, &ret)
 	return ret, err
 }
 
 func (g *GcsDataAccess) SaveDiff(ctx context.Context, event Event) error {
 	dateTag := time.Now().Format(time.Stamp)
-	diffPath := strings.Join([]string{g.Prefix, fmt.Sprintf("diff-%s.json", dateTag)}, "/")
+	diffPath := strings.Join([]string{g.Prefix, fmt.Sprintf("diff-%s.yaml", dateTag)}, "/")
 	w := g.client.Bucket(g.Bucket).Object(diffPath).NewWriter(ctx)
 	defer func() {
 		_ = w.Close()
