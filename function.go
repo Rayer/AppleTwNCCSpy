@@ -3,13 +3,20 @@ package AppleProductMonitor
 import (
 	"context"
 	_ "embed"
+	"errors"
 	"fmt"
+	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
+	"github.com/cloudevents/sdk-go/v2/event"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"gopkg.in/yaml.v3"
-	"io/ioutil"
 	"log"
+	"os"
 	"time"
 )
+
+func init() {
+	functions.CloudEvent("AppleProductMonitor", CrawlAndAnalyze)
+}
 
 //go:embed resources/newitem_explanation.txt
 var NewItemExplanation string
@@ -30,11 +37,13 @@ type Configuration struct {
 	Prefix           string `yaml:"prefix"`
 }
 
-func CrawlAndAnalyze(ctx context.Context, m PubSubMessage) error {
-	log.Printf("received event %+v\n", m)
-	confByte, err := ioutil.ReadFile("/secrets/AppleTwNccBotConfig.yml")
+func CrawlAndAnalyze(ctx context.Context, e event.Event) error {
+	log.Printf("received nccEvents %+v\n", e)
+	confByte, err := os.ReadFile("/var/secrets/ncc-bot-config/config.yml")
 	if err != nil {
-		return err
+		// List the directory
+		files, _ := os.ReadDir("/var/secrets/ncc-bot-config")
+		return errors.New(fmt.Sprintf("config file not found, files = %+v", files))
 	}
 
 	log.Printf("config : %s", string(confByte))
@@ -62,31 +71,31 @@ func CrawlAndAnalyze(ctx context.Context, m PubSubMessage) error {
 		FetchTarget: "https://www.apple.com/tw/nccid",
 	}
 
-	event, err := crawler.FetchAndCompare(ctx)
+	nccEvents, err := crawler.FetchAndCompare(ctx)
 
 	if err != nil {
 		return err
 	}
 
-	if len(event.Added) > 0 {
+	if len(nccEvents.Added) > 0 {
 		sendToChannel(bot, config.ChannelId, "偵測到新加入產品:")
-		addList := prettyPrintProducts(event.Added, "(+)")
+		addList := prettyPrintProducts(nccEvents.Added, "(+)")
 		for _, v := range addList {
 			sendToChannel(bot, config.ChannelId, v)
 		}
 		sendToChannel(bot, config.ChannelId, NewItemExplanation)
 	}
-	if len(event.Removed) > 0 {
+	if len(nccEvents.Removed) > 0 {
 		sendToChannel(bot, config.ChannelId, "偵測到移除產品:")
-		removeList := prettyPrintProducts(event.Removed, "(-)")
+		removeList := prettyPrintProducts(nccEvents.Removed, "(-)")
 		for _, v := range removeList {
 			sendToChannel(bot, config.ChannelId, v)
 		}
 	}
 
-	if len(event.Removed) != 0 || len(event.Added) != 0 {
+	if len(nccEvents.Removed) != 0 || len(nccEvents.Added) != 0 {
 		//Serialize into gcs
-		err = dataAccess.SaveDiff(ctx, event)
+		err = dataAccess.SaveDiff(ctx, nccEvents)
 		if err != nil {
 			return fmt.Errorf("unable write diff file : %v", err)
 		}
